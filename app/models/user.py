@@ -1,7 +1,8 @@
 from bson import json_util
 from bson.objectid import ObjectId
-from flask import Blueprint, current_app, jsonify, request, session
+from flask import Blueprint, current_app, jsonify, request, session, abort
 from ..models.schema import UserSchema
+from ..utils.security import validate_form
 from marshmallow import ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -108,8 +109,12 @@ def login_and_validate_user(request):
     db = current_app.config['DB']
     collection = db['users']
 
+    form_data, err = validate_form(request.form)
+    if err:
+        abort(403)
+
     # The data should be the email and password in JSON
-    data = request.form
+    data = form_data
 
     user = collection.find_one({"email": data.get("email")})
 

@@ -1,6 +1,6 @@
 from io import StringIO
 
-from flask import Blueprint, current_app, jsonify, request, render_template, session, redirect, url_for, flash
+from flask import Blueprint, current_app, jsonify, request, render_template, session, redirect, url_for, flash, abort
 from bson.objectid import ObjectId
 import pymongo
 import pymongo.errors
@@ -9,6 +9,7 @@ from marshmallow import ValidationError
 from ..models.schema import flashcardsSchema
 from ..models.user import get_user_by_id
 from ..models.flashcards import validate_set, save_set_to_flashcard_collection, save_set_for_user, get_set, delete_set_from_flashcard_collection, delete_flashcard_for_user, get_all_sets
+from app.utils.security import validate_form
 from app.utils.conversions import FileConvert
 
 
@@ -119,7 +120,6 @@ def get_specific_user_flashcards(set_id):
 # Creates a new set for the user based on the JSON request body and saves it to the users flashcard collection
 @flashcard_bp.route('/create', methods=["POST", "GET"])
 def create_set_route():
-
     if not session.get('user_id'):
         return render_template('loginsignup.html')
     
@@ -135,9 +135,12 @@ def create_set_route():
     except pymongo.errors.PyMongoError:
         return jsonify({"error": "No user exists with that ID or Database error"}), 404
 
-    # Parsing the form into set object. Could abstract this away later if need be.
-    set_name = request.form['setName']
-    set_description = request.form['setDescription']
+    form_data, err = validate_form(request.form)
+    if err:
+        abort(403)
+
+    set_name = form_data['setName']
+    set_description = form_data['setDescription']
     fronts = request.form.getlist('front')
     backs = request.form.getlist('back')
 
@@ -193,11 +196,10 @@ def delete_user_flashcard(set_id):
 
 
 
-@flashcard_bp.route('/flashcards/upload', methods=['GET', 'POST'])
+@flashcard_bp.route('/flashcards/upload', methods=['POST'])
 def upload_flashcards():
     """ Route for user to upload their file to be converted into a study set.
     
-    GET: renders the upload page.
     POST: converts a given file to flashcards and inserts a set to the users database.
 
     The template form should send:
@@ -209,13 +211,8 @@ def upload_flashcards():
 
     currently accepted file types: md
     """
-
-    # A get request to the same url should render the page to upload the set
-    if request.method == "GET":
-        if not session.get('user_id'):
-            flash('Please log in', 'error')
-            return redirect(url_for('login_user'))
-        return render_template('create.html')
+    if request.form.get('csrf_token') != session.get('csrf_token'):
+        abort(403)
 
     user_id = session.get('user_id')
     try:

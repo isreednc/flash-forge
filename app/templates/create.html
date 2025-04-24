@@ -23,6 +23,7 @@
 
                 <!-- Manual Entry Form -->
                 <form id="manualForm" class="entry-form" method="POST" action="{{ url_for('flashcards.create_set_route') }}">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                     <div id="bulkEntries">
                         <div class="bulk-entry-row row g-3 mb-3">
                             <div class="col-md-+">
@@ -50,6 +51,7 @@
 
                 <!-- File Upload Form -->
                 <form id="uploadForm" class="entry-form" style="display: none;" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                     <div class="mb-3">
                         <!-- removed onchange="previewFlashcards(this)" -->
                         <input type="file" name="file" class="form-control file-input" id="csvFile" accept=".csv,.txt,.md">

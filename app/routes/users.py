@@ -1,10 +1,11 @@
-from flask import Blueprint, current_app, jsonify, request, session, render_template, flash, redirect, url_for
+from flask import Blueprint, current_app, jsonify, request, session, render_template, flash, redirect, url_for, abort
 from bson.objectid import ObjectId
 import pymongo
 import pymongo.errors
 from .flashcards import flashcard_bp
 from ..models.user import get_user_by_id, delete_user_by_id, get_users, create_user, save_user, login_and_validate_user
 from ..models.schema import UserSchema
+from ..utils.security import validate_form
 from marshmallow import ValidationError
 from werkzeug.security import check_password_hash
 
@@ -41,8 +42,12 @@ user_bp.register_blueprint(flashcard_bp)#, url_prefix='/<user_id>')
 # Need something that checks if email is already used to create account.
 @user_bp.route("/", methods=['POST'])
 def create_user_route():
+    form_data, err = validate_form(request.form)
+    if err:
+        abort(403)
+
     # Construct user object with submitted form
-    user = request.form
+    user = form_data
     try:
         validated_user = create_user(user)
     except ValidationError as err:

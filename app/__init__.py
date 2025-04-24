@@ -1,9 +1,12 @@
-from flask import Flask
-from flask_login import LoginManager
-from dotenv import load_dotenv
 import os
+import secrets
+
+from dotenv import load_dotenv
+from flask import Flask, session
+from flask_login import LoginManager
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+
 from .routes import main_bp
 from .routes.users import user_bp
 from .routes.flashcards import flashcard_bp
@@ -27,6 +30,12 @@ def create_app(config_name="default"):
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except Exception as e:
         print(e)
+
+    # Register CSRF token setter
+    @app.before_request
+    def set_csrf_token():
+        if 'csrf_token' not in session:
+            session['csrf_token'] = secrets.token_hex(16)
 
     # Choose DB based on config
     db_name = 'study-guide-test' if config_name == 'testing' else 'study-guide'
