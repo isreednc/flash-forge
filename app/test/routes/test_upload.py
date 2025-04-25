@@ -36,3 +36,19 @@ def test_edit(client, test_user, test_flashcards):
     })
 
     assert response.status_code == 302
+
+def test_get_all_users_sets_home(client, test_user, test_flashcards):
+    with client.session_transaction() as session:
+        session['user_id'] = str(test_user['_id'])
+
+    response = client.get('/flashcards/home')
+    assert response.status_code == 200
+
+def test_get_all_users_sets_manage(client, test_user, test_flashcards):
+    with client.session_transaction() as session:
+        session['user_id'] = str(test_user['_id'])
+
+    response = client.get('/flashcards/manage')
+    assert response.status_code == 200
+
+
